@@ -1,0 +1,14 @@
+% $Id: BASENAME-preamble.tex 23033 2018-09-28 23:38:29Z beringer $
+% File for including review-specific LaTeX commands that must appear in the preamble.
+% The primary use of this file is to include any additional LaTeX packages.
+
+\usepackage{mathtools} % for \colonequal
+\usepackage{xfrac} % for \sfrac
+\usepackage{amsmath}
+
+\newcommand{\kyle}[1]{\textcolor{blue}{\emph{[KC: #1]}}}
+\newcommand{\uros}[1]{\textcolor{red}{\emph{[US: #1]}}}
+\newcommand{\kazu}[1]{\textcolor{orange}{\emph{[KT: #1]}}}
+
+\newcommand*\dif{\mathop{}\!\mathrm{d}} %for \int \dif x
+

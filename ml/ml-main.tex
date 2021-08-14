@@ -1,0 +1,778 @@
+% $Id: BASENAME-main.tex 29035 2021-05-20 04:30:23Z beringer $
+% Main file for PDG review ml
+%
+% This file is included by the top-level file ml.tex and is where the
+% text of your review should be included. If desired, you may split your review into multiple
+% files that are included from this file using \input.
+%
+% Do NOT modify the top-level file ml.tex - it is generated from
+% the PDG database and all manual changes WILL BE LOST!
+
+%Probability: \url{https://pdg.lbl.gov/2020/reviews/rpp2020-rev-probability.pdf}
+
+%Statistics: \url{https://pdg.lbl.gov/2020/reviews/rpp2020-rev-statistics.pdf}
+
+%Deadline  for providing a draft of your review for refereeing is \textbf{August 27, 2021.}
+
+%\input{ml/outline-verbatim}
+
+
+% Review title
+% ------------
+% Please use \pdgtitle (rather than e.g. \chapter) to put the title of your review.
+%
+% To put the review title extracted from the PDG database, use \pdgtitle (no arguments).
+% To override the default review title, you can use \pdgtitle[Some different title].
+% In the latter case, please ask your overseer to update the review title in the database
+\pdgtitle
+
+
+% Table of contents
+% -----------------
+% If you want to include a table of contents at the start of your review,
+% uncomment the line below. This should only be done for relatively long
+% reviews.
+%\tableofcontents
+
+
+% Author information for this review
+% ----------------------------------
+% Please use one of the following forms:
+%   \written{month year}
+%   \revised{month year}
+%   \customauthor{...}
+% The first two, \written and \revised take the month and year when the review
+% was written or revised as their only argument. The author list is generated
+% from the PDG database. This is the preferred way of including author information.
+% Only if really needed, you may use the third from, \customauthor, where you can
+% specify the full text of the paragraph giving the review author information.
+\revised{August 2019}
+
+%Compiled on: \today at \currenttime (GMT)
+\setcounter{tocdepth}{5}
+\tableofcontents
+
+
+\section{Introduction}
+
+\kyle{test comment kyle}
+\uros{test comment uros}
+\kazu{test comment kazu}
+
+This chapter gives an overview of the core concepts of machine learning that are relevant to  particle physics with some examples of applications to the energy, intensity, cosmic, and accelerator frontiers. Machine learning (ML) is an enormous field that has grown substantially in the last decade, propelled largely by the emergence of so-called deep learning (DL)~\cite{lecun2015deep, schmidhuber2015deep}. ML has a long history in particle physics going back to the late 1980s and early 1990s, see Refs.~\cite{Radovic:2018dip,Guest:2018yhq,Carleo:2019ptp} for recent reviews. 
+%While machine learning and artificial intelligence (AI) are often associated with mysterious 
+Despite the connotations of machine learning and artificial intelligence as a mysterious and radical departure from traditional approaches, we stress that machine learning has a mathematical formulation that is closely tied to statistics, the calculus of variations, approximation theory, and optimal control theory. %Nevertheless, there have been tremendous advances in recent years that are impacting physics.
+
+The topic can be organized along a few axes, which we use to organize this section. First, there are different learning paradigms, for example supervised learning, unsupervised learning, and reinforcement learning. Within these paradigms there are various tasks; for example, classification and regression -- which have been the primary use of ML in particle physics -- are examples of supervised learning. In addition to the learning paradigm and tasks, there are various types of machine learning models that generically process some input and produce some output. The types of models vary based on what it is they are modelling (\eg so-called discriminative vs. generative models), as well as the way that they are implemented (\eg neural networks, decision trees, and kernel machines). Next, there are the issues around training or learning within the context of a given task and model class, which connects to optimization and regularization. 
+%The performance and properties of the trained model depend on details of the model, learning algorithm, and data interact~\cite{zdeborova2020understanding}
+We will briefly discuss the various considerations that emerge in the application of machine learning methods to physics, such as the treatment of systematic uncertainty, the interpretability of the models, the incorporation of symmetry, \etc. Finally, we will briefly touch on some example applications. 
+
+\kyle{As I approach this I think that it may be easier to write and read if we introduce supervised learning, the loss function, emperical risk etc. first and then pull out the loss, etc. as general concepts that take on a different forms in the unsupervised context.}
+
+\subsection{A gentle introduction with a representative example}
+
+We will use a specific, familiar example to introduce the various ingredients in context before factorizing and abstracting them. Consider the task of \textit{classifying} energy deposits in a particle detector as electrons or protons. For this example, let the detector data consist of energy deposits in $d$ sensors so that the data can be represented as \textit{feature vector} $x \in \mathbb{R}^d$. Due to the complex interactions of particles in the detector, we do not have an explicit probability model for the high-dimensional data for the electron and proton scenarios, but we do have a simulator that allows us to generate Monte Carlo samples for each. This allows us to assemble a \textit{training dataset} $\{x_i, y_i\}_{i=1,\dots,n}$, where $y$ is used as a \textit{label} to identify how the example was generated (\eg $y=0$ for electrons and $y=1$ for protons). We would like to find a function $f:x\to y$ that is able to accurately \textit{predict} the label on new data. Because we have feature-label pairs, this is considered a \textit{supervised learning} problem. We can use a \textit{neural network} to provide a flexible family of functions $f_\phi: \mathbb{R}^d \to \mathbb{R}$, where $\phi$ denotes the internal parameters of the neural network (\ie the weights and biases that we will discuss in Sec.\ref{ML:sec:nn}). The goal of the \textit{training procedure} is to find the value of the parameters $\phi$ that provide the `best' predictions, but since no model is perfect, we must be explicit about the tradeoffs. This is made concrete through a \textit{loss function} $\mathcal{L}(f_\phi(x),y)$. For this example, instead of the obvious zero-one loss (which is 0 if $f_\phi(x)$ equals $y$ and 1 if they are not), we  choose to use the squared-loss $\mathcal{L}_{\rm sq}(f_\phi(x), y) = (y - f_\phi(x)^2$ (which may seem \textit{ad hoc} now, but will be motivated in Sec.~\ref{ML:sec:classification}). We can evaluate the  average of the loss on the training set, which is referred to as the \textit{emprical risk} $\mathcal{R}_\textrm{emp}(f_\phi) = \sum_{i=1}^n \mathcal{L}(f_\phi(x), y)/n$. \textit{Training} refers to numerically minimizing the empirical risk (often referred to as the \textit{training loss} through some abuse of terminology). We can numerically optimize the model through \textit{gradient descent}, which iteratively adjusts the parameters of the network according to $\phi^{t+1} = \phi^t - \gamma \nabla_\phi \mathcal{R}_\textrm{emp}(f_\phi)$, where $\gamma$ is referred to as the \textit{learning rate}. Once the optimization is complete, it is natural to assess the quality of the trained model $f_{\hat\phi}$ on an independent \textit{testing set}. The empirical risk evaluated on the testing set is often larger than on the training set, and large differences indicate \textit{overfitting}. The ability to accurately predict on unseen data is referred to as \textit{generalization} and the empirical risk on the test data provides a measure of the \textit{generalization error}. In order to reduce the \textit{generalization error} one might explore different model choices (\eg neural network architectures), additional regularization terms in the loss function, different learning rates, optimization algorithms, or early stopping criterion in the optimization. Once trained, the model can be applied to data. In order to produce a binary electron vs. proton decision from the continuous ouptut of the neural network, we must threshold (\ie classify as proton if $f_{\hat\phi}(x)>k$). The choice of the threshold $k$ is often referred to as a working point and it sets the tradeoff between electron and proton efficiency, fake-rates, purity, etc. These familiar concepts in particle physics are usually referred to in different terms in machine learning and a \textit{receiver operating characteristic curve}, or ROC curve, is used to summarize the tradeoff between true positive rate (TPR) and false positive rate (FPR). Importantly, the characterization of the efficiency / rejection (or equivalently the ROC curve) requires labeled data. In a particle physics context, it is recognized that the simulation is not perfect and the mismodelling is associated to the presence of systematic uncertainty. In machine learning, the discrepancy between the distribution of the training data and the distribution of the data that the model will be applied to in practice is referred to as \textit{domain shift} or \textit{distribution shift}. While mismodelling in the training data might lead to a less-than-optimal classifier in practice, the real source of systematic uncertainty comes from mismatch between the data used to characterize the performance of the classifier and the unlabeled data that the classifier is applied to. This motivates the use of data-driven methods to calibrate the resulting model, but does not remove the possibility of systematic error due to domain shift.
+
+This example provides a vertical slice through the various aspects of supervised machine learning in particle physics. Now we factorize and abstract the various ingredients in order to provide a more general treatment with a broader scope. 
+
+
+\section{Fundamental Concepts}
+%\kyle{keeping this original structure, that makes sense logically but might come across as too abstract and less readable compared to starting with supervised learning.}
+
+\subsection{Loss, Risk, Empirical Risk}
+
+The term \textit{learning} in machine learning generally refers to optimization of some objective, which can be thought of as maximizing utility or minimizing \textit{risk}. The risk brings together three main ingredients. The first is the \textit{model family} $\mathcal{F}$ (where $f\in \mathcal{F}$ is the quantity that we vary during optimization), the second is the \textit{loss function} $\mathcal{L}$, and the third is a data distribution $p(u)$. 
+The \textit{risk} for a model $f\in \mathcal{F}$ is defined as its expected loss
+\begin{equation}
+    \label{ML:eq:risk}
+    \mathcal{R}[f] \coloneqq \mathbb{E}_{p(u)}[\mathcal{L}(u, f(u))] \equiv \int \mathcal{L}(u, f(u)), p(u) \dif u \;,
+\end{equation}
+where $\mathbb{E}_p[\cdot]$ refers to the expectation with respect to the distribution $p$.
+In the context of supervised learning, the distribution $p(u)$ describes a joint distribution over the features $x$ and the labels $y$ (\ie $p(u)=p(x,y)$), the model only depends on the features $f(u)=f(x)$, and the loss function takes on the special form $\mathcal{L}(u, f(u)) = \mathcal{L}(y, f(x))$. In the context of unsupervised learning there are no labels, and $u = x$. Written this way, the risk is a functional, and the idealized goal for machine learning is to solve the optimization problem
+\begin{equation}
+    \label{ML:eq:fstar}
+    f^{*}=\arg \min _{{f\in {\mathcal{F}}}}\mathcal{R}[f] \; , 
+\end{equation}
+where $\mathcal{F}$ would include all possible functions. % $f\in\mathcal{F}$.
+
+
+%\kyle{add note here about how often the loss function isn't necessarily a notion of utility, but is designed  such that $f^*$ has the desired properties, and that calculus of variations can be helpful here. }
+
+One of the defining characteristics of machine learning in practice is that one does not know the data distribution $p(u)$, but does have access to samples from that distribution, \ie $\{u_i\}_{i=1,\dots,n}$ with $u_i \overset{i.i.d.}{\sim} p(u)$. This leads to the corresponding \textit{empirical risk}
+\begin{equation}
+    \label{ml:eq:Remp}
+        \mathcal{R}_\textrm{emp}[f] \coloneqq \mathbb{E}_{\hat{p}(u)}[\mathcal{L}(u, f(u))] \equiv \frac{1}{n} \sum_{i=1}^n  \mathcal{L}(u_i, f(u_i)) \;,
+\end{equation}
+where $\hat{p}(u) = \sfrac{1}{n} \sum_{i=1}^n \delta(u - u_i)$ is referred to as the empirical distribution of the dataset $\{u_i\}_{i=1,\dots,n}$. 
+The \textit{empirical risk minimization} principle is a core idea in statistical learning theory~\cite{vapnik2013nature}, which approximates $f^*$ with its empirical analogue
+\begin{equation}
+    \label{ML:eq:fhat}
+    \hat{f}=\arg \min _{{f\in {\mathcal{F}}}}\mathcal{R}_\textrm{emp}[f] \; .
+\end{equation}
+
+\kyle{The way it is written currently there is just $\hat{f}$ and $f^*\in \mathcal{F}$. But $f^*$ is often used as if $\mathcal{F}$ includes all possible functions. Do we need to change notation or can we just make a comment?}\uros{Just a comment would suffice.}
+
+While the loss function may quantify some well-motivated notion of (negative) utility, it is also common to design loss functions so that $f^*$ has some desired property. While in practice one does not know the data distribution $p(u)$, it is constructive to imagine that one does and analyze Eq.~\ref{ML:eq:fstar} with the calculus of variations. In Secs.~\ref{ML:sec:tasks_and_loss} we will consider several such loss functions where one can show that the corresponding $f^*$ has the desired property even if the form of the loss is not obvious from the point of view of utility. Furthermore, there are often multiple loss functions that can lead to the same $f^*$. Then one can think of machine learning as applied calculus of variations where one solves Eq.~\ref{ML:eq:fhat} with a sufficiently flexible model, powerful optimization algorithms, and practical considerations to break the degeneracy between different loss functions that lead to the same $f^*$. 
+
+\subsection{Generalization}
+
+With a sufficiently flexible model, it is possible to fit the training data very well, though the model might not \textit{generalize} well to unseen data due to overfitting. More concretely, for a non-negative loss function one might have $\mathcal{R}_\textrm{emp}[\hat{f}] \to 0$, while the true risk might be large ($\mathcal{R}[\hat{f}] \gg 0$). The gap between the $\mathcal{R}[\hat{f}]-\mathcal{R}_\textrm{emp}[\hat{f}]$ is typically referred to as the \textit{excess risk}\footnote{Similarly, the gap between the true risk of the learned model and the true risk of the optimal model (\ie $\mathcal{R}[\hat{f}]-\mathcal{R}[f^*]$) is referred to as the \textit{regret}. This quantity is mainly of interest for theoretical analysis of machine learning algorithms, and not of practical concern since usually neither term is tractable.}. While it is generally not possible to evaluate $\mathcal{R}[\hat{f}]$ exactly because we do not know $p(u)$, we can use an independent testing set (also called validation set) to obtain an unbiased estimate of it. This \textit{cross-validation} method motivates the test -- train split of the data. 
+
+Intuitively, a model with many parameters has more flexibility and is more prone to overfitting. A common and intuitive heuristic is that one should not fit a model with more parameters than there are data points. However, a more careful treatment reveals that this heuristic can lead be both pessimistic and optimistic. For example, the single-parameter model $f_\phi(x) = \operatorname{sign}(\sin(\phi x))$ can perfectly classify any assignment of labels on data $(x_i, y_i)$ with $x \in \mathbb{R}$ and $y\in \{0,1\}$ and generalize poorly. Conversely, sometimes highly over-parameterized models (that have large subspaces of their parameters where $\mathcal{R}_\textrm{emp}[\hat{f_\phi}] \to 0$) might generalize well~\cite{zhang2021understanding-2, nakkiran2019deep}. Often this is 
+achieved through \textit{regularization}, both 
+explicit and implicit (section \ref{regularization}). 
+
+
+\textit{Structural risk minimization} is a modification to the emperical risk minimization principle that was introduced by Vapnik and Chervonenkis to account for the potential for overfitting~\cite{vapnik2013nature}.  In this approach, one characterizes a model's flexibility, or \textit{capacity}, with its Vapnik-Chervonenkis (VC) dimension $D_\textrm{VC}$ and the theory allows one to put an upper bound on the true risk that holds with probability $\eta$ for any distribution $p(u)$: $\mathcal{R}[\hat{f}] \le \mathcal{R}_\textrm{emp}[\hat{f}] + \Delta(D_\textrm{VC}, n, \eta)$, where there is an explicit formula for $\Delta$. A similar theory established so-called PAC bounds (PAC stands for provably approximately correct)~\cite{valiant1984theory}. 
+
+The fact that one can make such a statement is impressive, and led to a rise in popularity for kernel machines and support-vector machines in the 1990s and 2000s. However, the bounds are based on a worst-case type analysis and are often very weak (\ie $\Delta$ is very large). Recall that while one cannot calculate the true risk, one can obtain an unbiased estimate of it with a held-out, independent testing sample. Thus one can empirically compare the generalization error of two models and find that one generalizes better than the other even if the bounds might suggest the opposite. One of the major conceptual shifts that happened with the rise of deep learning was to more fully appreciate that these bounds and structural risk minimization were not a good learning principle in practice and that more theoretical work is needed to close the gap between formal bounds and empirical estimates of generalization error. 
+
+\section{Common tasks and their associated loss functions}\label{ML:sec:tasks_and_loss}
+
+We now move to common tasks encountered in machine learning and their associated loss functions. 
+
+\subsection{Supervised Learning}\label{ML:sec:supervised}
+
+Supervised learning generally refers to the class of problems where the training data are presented as input-output pairs $\{x_i, y_i\}_{i=1,\dots,n}$, where $x_i \in \mathcal{X}$ are the input features and $y_i \in \mathcal{Y}$ are the corresponding target labels. Furthermore, it is typically assumed that $(x_i,y_i) \overset{i.i.d.}{\sim} p(x,y)$, though $p(x,y)$ is usually not known explicitly. Finally, the loss function in supervised learning takes on the special form $\mathcal{L}(y, f(x))$. The resulting trained model is then  used to predict the labels for dataset where labels are not available. 
+
+\subsubsection{Regression}\label{ML:sec:regression}
+
+The goal of regression is to predict a label $y\in \mathcal{Y}$ given an input feature vector $x \in \mathcal{X}$. Typically, the label is a real-valued scalar, but $\mathcal{Y}$ can be $\mathbb{R}^d$ or some more structured target (\eg an image, sequence, graph, quantile, or distribution). When $\mathcal{Y}$ is discrete, the task is usually referred to as classification; however, the two are closely related and \textit{logistic regression} is an example where the model predicts a continuous probability associated to the possible label values. 
+%Regression refers to the task of learning a function $f(x)$ of the features $x$ that will be used to predict a target variable $y$. 
+In elementary statistical language, the target label $y$ is often called a dependent variable, while the feature $x$ is called the independent variable. In classical statistics, one often assumes a model for the data such as 
+\begin{equation}
+    \label{ML:eq:classical_regression}
+    y_i = f_\phi(x_i) + e_i \;,
+\end{equation}
+where $e_i$ is an additive error term that is often assumed to be independent of $x$ and often assumed to be normally distributed. This leads to classic approaches like least-squares (see Sec.40.2.3 \kyle{fix ref}), and when the model $f_\phi$ is linear in $\phi$ (not in $x$!) one has linear regression that has a closed-form solution. However, we can relax these assumptions and consider the general case of an arbitrary joint distribution $p(x,y)$, which can be written as $p(y|x)p(x)$ without loss of generality. Consider the \textit{squared error} as a loss function, which leads to the mean-squared error (MSE) for the empirical risk:
+\begin{equation}
+    \label{ML:eq:squared-error}
+    \mathcal{L}_\textrm{MSE}(y, f(x)) = (y - f(x))^2 \;.
+\end{equation}
+One might expect that the squared error would only be appropriate in the case that the conditional distribution $p(y|x)$ is normally distributed, but one can use the calculus of variations to show that in general 
+\begin{equation}
+    \label{ML:eq:fstar_MSE}
+    f^*_\textrm{MSE}(x) = \mathbb{E}_{p(y|x)} [y] \;,
+\end{equation}
+that is the optimal regressor for the MSE is the conditional expectation of $y$ given $x$. 
+
+One issue with the squared-error as a loss function is that it is sensitive to outliers. Alternatively, one can use the absolute error $|y - f(x)|$ as a loss function\footnote{The absolute error and squared error are often denoted as L1 and L2 errors, respectively, in reference to the corresponding norms.}. However, the discontinuous derivative of the  absolute (L1) error leads to challenges in optimization. As a result there are various other loss functions, such as the Huber loss, that aim to be both robust and more amenable to optimization that we do not discuss here. 
+
+
+A more principled discriminative objective that can handle any outlier distribution
+is to maximize the posterior $p(y|x)$, 
+\begin{eqnarray}
+    &\log p(y|x) = \log p(x|y) - \log p(x) + \log p(y) \nonumber\\
+    =& \log p(x|y) - \log (\int p(x|y) p(y) dy) + \log p(y). 
+    \label{pxy}
+\end{eqnarray}
+Given the trained posterior $p(y|x)$
+the regression task can be identified 
+as a point estimator, such as 
+\begin{equation}
+    f^*(x)=\arg \max_y p(y|x). 
+\end{equation}
+
+One can model the posterior $p(y|x)$ directly, or 
+one can model the 
+data likelihood, $f(x)=p(x|y)$, which is the task of 
+generative learning. This is viewed as a 
+harder task than modeling the posterior $p(y|x)$ because 
+the dimensionality of the data $x$ is 
+often higher than that of $y$, and 
+because one must perform the marginal 
+integral over $y$ in equation \ref{pxy}. 
+When we have a classification problem $y$ is discrete and the integral over $y$ is 
+replaced by a sum (section \ref{ML:sec:classification}). 
+
+
+\subsubsection{A note on regularization}
+\label{regularization}
+
+The trained model $\hat{f}$, or equivalently, the parameters of the trained model $\hat{\phi}$ can be thought of as point estimates of $f^*$, and there is a correspondence to the issues of bias and variance discussed in Chapter 40.2 on parameter estimation \kyle{figure out how to properly do cross reference}. Generically, there is a bias--variance tradeoff, and when the number of parameters is large and the number of data points is not much larger, introducing a small bias can often lead to a significant reduction in variance. This motivates the explicit addition of a \textit{regularization} term to the loss function, which will introduce some bias $f^*_\textrm{reg} \ne f^*$. A common form for of regularization is to penalize by the L2 norm of the parameters (\ie $\lVert \phi \rVert_2$, which is referred to as \textit{Tikhonov regularization}. This appears in the form of penalized maximum likelihood, and it is also commonly used in unfolding~\cite{Kuusela:2015xqa}. One can also interpret the regularization term as an explicit prior on the parameters, and the resulting model as the Bayesian maximum a posteriori (MAP) estimator. When paired with linear regression this is known as \textit{ridge regression}, and when paired with kernel machines (see Sec.~\ref{ML:sec:kernel_machines} this gives rise to kernel ridge regression or Gaussian process regression. 
+
+Another form of regularization is to restrict the model class $\mathcal{F}$. For example, a neural 
+network and a sequence of narrow step functions 
+(delta functions) can both be shown to be 
+universal approximators, but on real world 
+examples the former generalizes
+much better than the latter. Within the class
+of neural network models, 
+convolutional neural networks are a subset of generic feedforward neural networks that enforce translational symmetry (see Sec.~\ref{ML:sec:cnn} for more discussion). Similarly, one might restrict to functions Lipschitz continuous functions. These types of choices are often encoded in the architecture of a neural network and are broadly referred to as \textit{inductive bias} in the model.
+
+In addition to explicit regularization terms in the loss function or through restrictions to the model class, it is also possible to regularize implicitly. 
+An implicit regularization is
+through early stopping~\cite{DBLP:journals/corr/RosascoTV14,Kuusela:2015xqa}, where we monitor the 
+loss on training data and the loss on test 
+data. While the training data loss continues to 
+decrease with more gradient descent cycles, the test loss may not, and early stopping stops the training when test loss flattens out or begins to increase. Another powerful form of regularization used in deep learning models is known as \textit{dropout}~\cite{dropout}, which randomly removes some some parts of the model during training and can be thought of as implementing a type of model averaging~\cite{baldi2013understanding}. What is more surprising is that in the case of highly overparameterized models where there is a large degenerate parameter space that achieves zero loss, $\Phi_0 = \{\phi | \mathcal{R}_\textrm{emp}[f_\phi] = 0$, that the dynamics of the optimization algorithm that is used will break the degeneracy and favor some particular $\hat{\phi} \in \Phi_0$ as if an additional regularization term was secretly included. Despite 
+zero loss and overparametrization, the corresponding generalization  error may be small, a phenomenon called
+\textit{benign overfitting} \cite{Belkin18}. 
+Importantly, the dynamics of different optimization algorithms will have different implicit regularization effects, and thus favor different parameter points in $\Phi_0$ that will have different generalization error~\cite{pmlr-v80-gunasekar18a}. Understanding this interaction is a topic of contemporary research in machine learning~\cite{zdeborova2020understanding}.   
+
+
+
+
+\subsubsection{Classification}\label{ML:sec:classification}
+
+The goal of classification is to predict one of a finite number of class labels $y\in \mathcal{Y}$ given an input feature vector $x \in \mathbb{X}$. It is similar to regression in this way, but the focus is on discrete target space $\mathcal{Y}$. An important special case is when the label can only take on one of two values (\eg ``signal'' or ``background''), which is referred to as binary classification and is equivalent to simple hypothesis testing in statistics. It is common for a classifier to be the composition of a model $g:\mathcal{X} \to \mathbb{R}^{|\mathcal{Y}|}$ that predicts continuous probabilities for each class (\ie $g(x) \approx p(y|x)$) followed by an operation that then chooses the discrete label $y\in\mathcal{Y}$, such as a fixed threshold or $f(x) = \arg \max g(x) \approx \arg \max_y p(y|x)$. This is the case for both classical methods like logistic regression and modern, deep learning approaches to classification; therefore, we will use the term probabilistic classifier for $g(x)$ or just classifier when it is clear in context.
+
+An intuitive loss function for classification is the zero-one loss, which simply counts the number of mis-classifications:
+\begin{equation}
+    \label{ML:eq:zero-one}
+       \mathcal{L}_\textrm{0/1}(y, f(x))= 
+\begin{cases}
+    0 ,& \text{if } f(x) = y\\
+    1,              & \text{otherwise} \; .
+\end{cases}
+\end{equation}
+The zero-one loss can also be written as $\mathcal{L}_\textrm{0/1}(y, f(x)) = \mathbf{1}(y \ne f(x))$, where $\mathbf{1}(\cdot)$ is the indicator function. The zero-one loss is non-differentiable, so it does not pair well with gradient-based optimization. 
+%In some cases, one uses a differentiable relaxation, such as a sigmoid 
+
+For binary classification, one can use $y=\{0,1\}$ as numerical values for the class labels and the mean-squared error $\mathcal{L}_\textrm{MSE}(y, f(x))$ in Eq.~\ref{ML:eq:squared-error} for the loss function. The resulting model will approximate $f^*_\textrm{MLE}$, the conditional expectation of Eq.~\ref{ML:eq:fstar_MSE} takes on the form 
+\begin{equation}
+    \label{ML:eq:fstar_MSE_binary}
+    f^*_\textrm{MSE}(x) = \mathbb{E}_{p(y|x)} [y]  \leadsto p(y=1|x) = \frac{p(x|y=1)p(y=1)}{p(x|y=0)p(y=0)+p(x|y=1)p(y=1)} \;.
+\end{equation}
+That is the MSE loss for binary classification leads to the Bayesian posterior probability that the label $y=1$ given the feature vector $x$. The same 
+result is obtained 
+by Eq. 
+\ref{pxy} if the integral over $y$ is 
+replaced by the sum over the two $y$ labels. 
+
+Equation~\ref{ML:eq:fstar_MSE_binary} highlights an important general feature of supervised learning relevant for particle physics, which is that the joint distribution $p(x,y)$ of the training data  implies a prior distribution $p(y)$ on the labels or classes. This prior distribution need not reflect a degree of belief or the frequency in real data, it represents the frequency in the training data. However, it is important to keep in mind that when applying the resulting model to a different dataset with the same conditional distribution (data likelihood) $p(x|y)$ for the features and a different prior $p^\prime(y)$ for the labels that the probabilistic interpretation of the result will not be properly calibrated. A common choice for binary classification is to use a balanced training set with $p(y=0)=p(y=1)=\sfrac{1}{2}$, while in many cases the true $p^\prime(y=1)$ in the experimental data might be very small (\ie low signal-to-background), unknown, or zero (\ie a hypothetical particle that does not exist). If $p^\prime(y)$ is known then the Bayes theorem 
+can be used to recalibrate the posterior
+$p(y|x)$. 
+
+It is enlightening to establish the correspondence of binary classification to simple hypothesis tests in frequentist statistics discussed in Sec.~40.3.1 of the Statistics Chapter \kyle{fix cross-chapter reference}. In that setting, the Neyman-Pearson lemma states that the optimal classifier is given by the likelihood ratio. Adapting to the notation of this chapter, we have
+\begin{equation}
+    \label{ML:eq:fstar_neyman-pearson}
+    f^*_\textrm{N.P.}(x) = \frac{p(x|y=1)}{p(x|y=0)} \;,
+\end{equation}
+which does not depend on the prior probabilities $p(y=0)$ or $p(y=1)$ as in Eq.~\ref{ML:eq:fstar_MSE_binary}. However, the two functions are related by a one-to-one, monotonic transformation
+\begin{equation}
+    \label{ML:eq:lrt}
+    f^*_\textrm{N.P.}(x) = \frac{p(y=0)}{p(y=1)}\frac{f^*_\textrm{MSE}(x)}{1-f^*_\textrm{MSE}(x)} \;,
+\end{equation}
+which is referred to as the \textit{likelihood-ratio trick}, which plays an important role in simulation-based inference (see Sec.~\ref{ML:sec:SBI}). Importantly, the monotonic transformation does not impact the tradeoff of type-I and type-II error, therefore the  \ie the ROC curve for $f_\textrm{N.P.}(x)$ and $f_\textrm{MSE}(x)$ are identical and do not depend on the prior probabilities $p(y)$. This property has been leveraged in the context of \textit{weakly supervised} approaches~\cite{Metodiev:2017vrx} and enables one to train a classifier on data without access to labels as long as one has two datasets with different ratios $p(y=1)/p(y=0)$ and the same conditional distribution $p(x|y)$ of the features given the labels. 
+
+A generalization of the binary loss function for classification of Eq. \ref{ML:eq:fstar_MSE_binary}, which applies to multiple classes, is the \textit{cross-entropy} loss
+\begin{equation}
+    \label{ML:eq:cross-entropy}
+    \mathcal{L}_\textrm{xe}(y, f(x))= - \sum_{c\in |\mathcal{Y}|} \mathbf{1}(y=c) \log(f_c(x)) \; ,
+\end{equation}
+where $f:\mathcal{X} \to \mathbb{R}^{|\mathcal{Y}|}$ and the indicator function picks out the term in the sum for the corresponding class label $y$. This loss can be derived from maximizing the posterior of Eq. 
+\ref{pxy} using a discrete set of class labels $y$, which identifies $f_c(x)=\tilde{f}(y=c|x)=p(y=c|x)$ and thus enforces the constraint $\sum_c f_c(x)=1$ and $f_c(x)\ge 0$ (for all $x\in \mathcal{X}$, \eg by using the \textit{softmax} function). 
+%It is helpful to introduce the notation $\tilde{f}(y=c | x)=f_c(x)$, which reorganize 
+%The components of the vector $f$ to be an argument to a scalar $\tilde{f}$, so that that 
+The notation is aligned with the interpretation of $\tilde{f}(y|x)$ as a conditional distribution, i.e. an approximation to the true posterior $p(y|x)$.
+The risk associated to the cross entropy loss function is 
+\begin{equation}
+    \label{ML:eq:xe_risk}
+    \mathcal{R}_\textrm{xe}[f] = \mathbb{E}_{p(x,y)}\left[ -\sum_{c\in |\mathcal{Y}|} \mathbf{1}(y=c) \log f_c(x) \right] = - \sum_{c\in |\mathcal{Y}|} p(y=c) \mathbb{E}_{p(x|y)}[ \log \tilde{f}(y=c|x)] %= - \mathbb{E}_{p(x,y)}[ \log f_{c=y}(x)]
+%    \mathcal{R}_\textrm{xe}[f] = \mathbb{E}_{p(x,y)}\left[ -\sum_{c\in |\mathcal{Y}|} \mathbf{1}(y=c) \log f_c(x) \right] = - \sum_{c\in |\mathcal{Y}|} p(y=c) \mathbb{E}_{p(x|y)}[ \log f_c(x)] %= - \mathbb{E}_{p(x,y)}[ \log f_{c=y}(x)]
+    \;.
+\end{equation}
+This is equivalent to $\mathcal{R}_\textrm{xe}[f] = \mathbb{E}_{p(x)}[H[p(y|x), \tilde{f}(y|x)]]$, where $H[p,f]=\mathbb{E}_p[-\log f]$ is the cross-entropy between the two distributions. 
+%If one uses a model that enforces the constraint $\sum_c f_c(x) = 1$ (for all $x\in \mathcal{X}$), then 
+One can use a Lagrange multiplier $\lambda$ to enforce the normalization constraint and the calculus of variations to show that
+\begin{equation}
+    \label{ML:eq:fstar_xe}
+    f^*_{\textrm{x.e.},c}(x) = \lambda p(x,y=c) = \lambda p(y=c|x) p(x) = p(y=c|x)\;.
+\end{equation}
+This approach is closely related to the loss functions that are used for density estimation, the forward Kullback–Leibler divergence, and the maximum likelihood estimation. 
+
+In some cases it is possible to augment the training data with an unbiased, stochastic estimate of $p(y=c|x)$ that we denote $s_c(x,z)$. For example, when the simulation involves latent variables $z$ (\ie Monte Carlo truth quantities), then the simulation encodes $p(x,z | y)$, the joint distribution over the observed features $x$ and the latent variables $z$ conditioned on the class $y$. In many cases the simulation evolves through a Markov process (\eg the detector response only depends on the momenta of the incoming particles $z$, not the details of the hard scattering $y$). In that case, it is often possible to calculate $s_c(x,z) = p(y=c|x,z)$ for each training sample~\cite{Brehmer:2018eca}. Using the identity, $\mathbb{E}_{p(z|x)}[p(y|x,z)] = p(y|x)$, we see that $s_c(x,z)$ is an unbiased estimator of $p(y=c|x)$. In this case, one can use $s_c(x,z)$ in place of the indicator function in Eq.~\ref{ML:eq:cross-entropy} to construct an improved (lower-variance) loss function that reproduces the same cross-entropy risk function\footnote{A similar approach can also be used for the squared-error, see~Ref.~\cite{Brehmer:2018hga}.}${}^{,}$\footnote{The right hand side of Eqs.~\ref{ML:eq:xe_risk} and \ref{ML:eq:xe_risk_impoved} are written in a different form, but are equivalent.}
+\begin{equation}
+    \label{ML:eq:xe_risk_impoved}
+    \mathcal{R}^\prime_\textrm{xe}[f] = \mathbb{E}_{p(x,y,z)}\left[ - \sum_{c\in |\mathcal{Y}|} s_c(x,z) \log f_c(x) \right]  =  - \sum_{c\in |\mathcal{Y}|}  \mathbb{E}_{p(x)}[ p(y=c|x)\log f_c(x)] \;,
+\end{equation}
+which yields the same optimal classifier $f^*_{\textrm{x.e.},c}(x) = p(y=c|x)$~\cite{Brehmer:2018hga,Stoye:2018ovl}.
+%\begin{equation}
+%    \label{ML:eq:xe_risk_impoved}
+%    \mathcal{R}^\prime_\textrm{xe}[f] = \mathbb{E}_{p(x,y,z)}\left[ -s(x,z) \log f_{c=y}(x) \right] = - \mathbb{E}_{p(x)}[ \underbrace{\mathbb{E}_{p(z|x)}[s(x,z)]}_{p(y|x} p(y|x) \log f(x)] = - \mathbb{E}_{p(x)}[ p(y|x) \log f_c(x)] \;.
+%\end{equation}
+
+%in which the the observed f $p(x|z,y)$ is independent of $y$  
+%Since one controls the prior distribution $p(y)$ when generating the simulated training samples one can 
+
+%, for example based on access to details of the simulation. The simulation typically involves many 
+
+
+We note that unlike in the binary classification case, the multi-class classifier is sensitive to the priors $p(y)$ used in training. This leads to complications as often the class proportions are unknown. For example, one might be interested in classifying a signal when multiple backgrounds are present and the relative proportion of those different background components is uncertain. Ideally one would like the class proportions for the background components used in training to match those in the data, which presents an additional training challenge if those proportions are heavily unbalanced. 
+
+%in the multi-class classification setting (where $|\mathcal{Y}| > 2$, that the behavior of theclassifier is sensitive to the priors $p(y)$ used in training. 
+
+%multi-class classification. No longer independent of class proportions.
+
+hinge loss and unbalanced training data?
+
+Mention training with weighted events?
+
+GINI index and BDTs?
+
+
+\subsubsection{Segmentation}\label{ML:sec:segmentation}
+
+\kyle{Kazu please do this one}
+
+\subsection{Unsupervised Learning}\label{ML:sec:unsupervised}
+
+Unsupervised learning, also known as self-supervised learning, generally refers to the class of problems that use unlabeled training data $\{x_i\}_{i=1,\dots,n}$, where $x_i \in \mathcal{X}$ are the input features. Furthermore, it is typically assumed that $(x_i) \overset{i.i.d.}{\sim} p(x)$, though $p(x)$ is usually not known explicitly. Finally, the loss function in supervised learning takes on the special form $\mathcal{L}(x, f(x))$. 
+
+\kyle{mention self-supervised learning as a term}
+
+\subsubsection{Density Estimation}\label{ML:sec:density_estimation}
+
+The goal of density estimation is to estimate a distribution $p(x)$ based on samples $\{x_i\}_{i=1,\dots,n}$ with $x_i \overset{i.i.d.}{\sim} p(x)$. Conceptually, this is the same goal as when fitting a parameterized distribution $f(x;\theta)$ to data using the method of maximum likelihood as described in Sec.40.2.2 of the chapter on statistics \kyle{fix ref}. In practice, the difference in the machine learning context has to do with the flexibility of the model and the dimensionality of the data. A highly-flexible model, which can effectively approximate any distribution, is referred to as a non-parametric model (though, ironically, usually this means the model has many parameters). In contrast, typical maximum likelihood fits in particle physics are based on restricted families of distributions with relatively few parameters and the data is typically one- or two-dimensional. 
+
+Maximizing the likelihood function in Eq.~40.10 \kyle{fix ref} $\mathcal{L}(\theta) = \prod_{i=1}^n f(x_i; \theta)$ is equivalent to minimizing the empirical risk:
+\begin{equation}
+    \label{ML:eq:max_likelihood} 
+    \mathcal{R}_\textrm{emp,xe}[f_\phi] = - \frac{1}{n} \sum_{i=1}^n \log f_\phi(x) \;,
+\end{equation}
+where we adopt the notion used in this chapter. The loss is simply $\mathcal{L}_\textrm{}(x,f_\phi(x)) = -\log f_\phi(x)$, and the corresponding risk is 
+\begin{equation}
+    \label{ML:eq:xe_risk_density} 
+    \mathcal{R}_\textrm{xe}[f_\phi] = \mathbb{E}_{p(x)}[- \log f_\phi(x) ] %= H[p, f_\phi]
+    \;,
+\end{equation}
+which is the cross entropy $H[p, f_\phi]$. For density estimation, the model is usually constructed to enforce $\int f_\phi(x) dx =1$ and $f_\phi(x) \ge 0$ so that it can be interpreted as a distribution. With this constraint, one can show that $f^*_\textrm{xe}(x) = p(x)$. 
+
+Minimizing cross entropy $H[p,f_\phi]$ is equivalent to minimizing the forward Kullback–Leibler divergence (KL) divergence
+\begin{equation}
+    KL(p||f_\phi)\coloneqq \mathbb{E}_p[ \log p(x))- \log f_\phi] = H[p,f_\phi] - H[p] \; , 
+\end{equation}
+where $H[p] \coloneqq \int p(x) \log p(x) dx$ is the entropy and independent of $f_\phi$. The KL divergence $KL[p||f] \ge 0$, and equal if and only if $p=f$. 
+
+One can also consider the reverse KL divergence $KL[f_\phi || p]$, which is also minimized by $f_\phi=p$; however, this requires one to be able to generate samples $x_i \sim f_\phi(x)$ and be able to evaluate the probability density $p(x_i)$. Often this is not the case for real world data, but this approach is useful in the context of variational inference. The forward KL is also closely related to the variational free energy principle in statistical mechanics where $H[f_\phi]$ represents the entropy of the variational distribution, $p(x) \propto \exp(-E(x)/kT)$ is the Boltzman factor for the state $x$ with energy $E(x)$, and $H[f_\phi, p] = \mathbb{E}_{f_\phi}[E(x)]$ represents the expected energy for the variational distribution. As is well known to physicists, minimizing the free energy involves a balance between minimizing the energy and maximizing the entropy.
+
+%The training loss function for density estimation is 
+%usually taken as maximizing the cross-entropy $E_p[\log p_{\phi}(x)]$, where the 
+%expectation is over all the training data, which follow
+%the true distribution $p(x)$. The maximization is over 
+%parameters $\phi$ of the approximate density $p_{\phi}(x)$. 
+
+
+%Comment that for classification, one could do density estimation first and then use the ratios to form a classifier, but training the generative model is generally harder than the discriminative one. Here or in some other place? 
+
+The concepts of generalization and overfitting are
+particularly acute in unsupervised learning, where 
+the likelihood maximization of equation \ref{ML:eq:max_likelihood},  
+combined with universal approximator assumption, must converge onto  $\hat{p}(x) = \sfrac{1}{n} \sum_{i=1}^n \delta(x - x_i)$, the empirical distribution of the dataset $\{x_i\}_{i=1,\dots,n}$.
+This distribution has the highest likelihood on the training data and the lowest likelihood on the 
+test data where it gives $\hat{p}(x)=0$, unless the test data samples are identical to the 
+training data samples. So the empirical distribution of the training data has the worst possible generalization property, yet 
+it is the solution we converge to in the absence of 
+any regularization. 
+
+In addition to approaches to density estimation that involve learning in the sense of minimizing a loss or risk function, we note that there are also classical density estimation techniques such as histogramming and kernel density estimation~\cite{parzen1962estimation, davis2011remarks,Cranmer:2000du}. 
+
+\subsubsection{Representation learning, compression, and auto-encoders}\label{ML:sec:representation}
+
+
+A recurring topic in machine learning and statistics is how to represent the data. Much of classical statistics involves constructing a low-dimensional summary statistic that extracts the relevant information from the data for a particular task. There is a spectrum of representations with tradeoffs. At one end of this spectrum is lossless compression that allows you to encode the data into a smaller, intermediate representation that carries all the information since it can be decoded back into the original data. At the other end of the spectrum is something like the likelihood ratio, which is a single scalar that carries the relevant information needed for hypothesis testing, but it discards all the other information that might be needed for other tasks. An intermediate point in this spectrum is the process of feature engineering, which refers to the creation of new features $\mathcal{X}^\prime$ from the original features $\mathcal{X}$ in hopes that the down-stream task will be easier with the new features. For example, instead of working directly with the energy and momentum of particles, one might compute invariant masses, angles between particles, etc. This type of feature engineering generally improved performance for shallow neural networks, decision trees, \etc; however, with the rise of deep learning this is often no longer necessary and often limits performance compared to working with the original features. One can think of the intermediate layers of a neural network between the input and the output a representation of the data that is good for the task at hand, and by training all the layers of the network simultaneously (or ``end-to-end'') one can see the intermediate layers as a learned representations. 
+
+\kyle{A schematic figure for an autoencoder?}
+
+A common type of representation learning is based on the \textit{auto-encoder} $f = d\circ e:\mathcal{X}\to \mathcal{X}$, where $e:\mathcal{X}\to \mathcal{Z}$ is referred to as the \textit{encoder} and  $d:\mathcal{Z}\to \mathcal{X}$ is referred to as the \textit{decoder}. Typically the dimensionality of $\mathcal{Z}$ is much less than $\mathcal{X}$, and $z=e(x)$ can be thought of as a compressed representation of the input. The intermediate space $\mathcal{Z}$ is sometimes referred to as the bottleneck or the latent space of the auto-encoder. If the bottleneck is sufficiently large and the encoder and decoder are sufficiently flexible, then the function $f$ could just be the identity (\ie lossless compression). However, if the encoder and decoder are not sufficiently flexible or the dimensionality of the latent space is not large enough there will be some reconstruction error. Therefore the reconstruction error serves as a natural loss function
+\begin{equation}
+    \label{ML:eq:reconstruction_error}
+    \mathcal{L}_{a.e.}(x, f(x)) = \lVert x - f(x) \rVert^2 \;.
+\end{equation}
+
+Once trained, the encoder $e(x)$ can be used independently of the decoder to provide a generic low-dimensional representation of the data. The flexibility of this approach is attractive; however, there are no guarantees that this representation will be optimal for the other task. Indeed, the transition from pre-trained auto-encoders to end-to-end learning is one of the important trends that characterized the onset of the deep learning era.
+
+While achieving zero reconstruction error may seem good as it would imply lossless compression, it often performs poorly in practice. First, the encoder may be overfit to the training data and not generalize well to held out data. Secondly, it may not be robust to domain shift (see Sec.~\ref{ML:sec:domain_shift}). One approach to address these issues is the \textit{denoising autoencoder}, which uses a form of regularization that corrupts the input with noise $x' \sim q(x' | x)$ while still targeting reconstruction of the uncorrupted input $x$. 
+\begin{equation}
+    \label{ML:eq:reconstruction_error_DAE}
+    \mathcal{L}_{d.a.e.}(x, f(x)) = \lVert x - f(x') \rVert^2 \hspace{3em} \textrm{with} \hspace{3em} x' \sim q(x' | x)\;,
+\end{equation}
+where $q(x' | x)$ is some probability distribution such as a multivariate normal. 
+%The emperical risk training objective in this approach is:
+
+\kyle{Mention something about dimensionality reduction / manifold learning? tSNE?}
+
+\kyle{PCA}
+
+\subsubsection{Clustering}\label{ML:sec:clustering}
+
+The goal of clustering is to group the data $\{x_i\}_{i=1,\dots,n}$ into $k$ groups, or \textit{clusters}, usually with $k \ll n$. Intuitively, if two data points belong to the same cluster, then they should be similar in some sense. Conversely, if two data points are very different, then they should be assigned to different clusters. The notion of similarity usually is based on some heuristic, and there are a variety of algorithmic and probabilistic clustering algorithms. In some cases $k$ is specified, while in others it is determined by the clustering algorithm. There is also a distinction between flat clustering that directly partitions the data into $k$ clusters and hierarchical clustering where clusters are nested hierarchically as the name suggests.  In many cases clustering uses some notion of distance $d(x_i, x_j)$, which may either be heuristic or the $L_p$ norm $\lVert x_i - x_j \rVert_p$. 
+
+One of the most common clustering algorithms is known as $k$-means, where $k$ is specified by the user and results in sets $S = \{S_1, \dots, S_k\}$
+that minimize the variance of each cluster. Thus, the objective is
+\begin{equation}
+    \label{ML:eq:kmeans1}    
+{\displaystyle {\underset {\mathbf {S} }{\operatorname {arg\,min} }}\sum _{i=1}^{k}\sum _{\mathbf {x} \in S_{i}}\left\|\mathbf {x} -{\boldsymbol {\mu }}_{i}\right\|^{2}={\underset {\mathbf {S} }{\operatorname {arg\,min} }}\sum _{i=1}^{k}|S_{i}|\operatorname {Var} S_{i}} = {\displaystyle {\underset {\mathbf {S} }{\operatorname {arg\,min} }}\sum _{i=1}^{k}\,{\frac {1}{2|S_{i}|}}\,\sum _{\mathbf {x} ,\mathbf {y} \in S_{i}}\left\|\mathbf {x} -\mathbf {y} \right\|^{2}}
+\end{equation}
+where $\mu_i$ is the mean of points in $S_i$. 
+%This is equivalent to minimizing the pairwise squared deviations of points in the same cluster:
+%\begin{equation}
+\label{ML:eq:kmeans2}
+%{\displaystyle {\underset {\mathbf {S} }{\operatorname {arg\,min} }}\sum _{i=1}^{k}\,{\frac {1}{2|S_{i}|}}\,\sum _{\mathbf {x} ,\mathbf {y} \in S_{i}}\left\|\mathbf {x} -\mathbf {y} \right\|^{2}}
+%\end{equation}
+
+While $k$-means and many other clustering algorithms are defined in terms of an optimization problem, the optimization objective is often not representative of the actual notions of performance in a given context. As a result, there are a number of quantities used for the evaluation and assessment of the resulting clustering. These include Davies–Bouldin index, Dunn index, Rand index, Jaccard index, purity, F-measure, Hopkins statistic, \etc~\cite{wikipedia-clustering} 
+
+\subsection{Control, Planning, and Reinforcement Learning}\label{ML:sec:RL}
+
+\kyle{Text below directly from Wikipedia for reference. Not sure how much space we want to devote to RL, but this seems like the essence to me.}
+
+A Markov decision process is a 4-tuple 
+${\displaystyle (S,A,P_{a},R_{a})}$, where:
+$S$ is a set of states called the state space, $A$ is a set of actions called the action space, ${\displaystyle P_{a}(s,s')=\Pr(s_{t+1}=s'\mid s_{t}=s,a_{t}=a)}$ is the probability that action 
+$a$ in state $s$ at time $t$ will lead to state 
+$s'$ at time $t+1$, ${\displaystyle R_{a}(s,s')}$ is the immediate reward (or expected immediate reward) received after transitioning from state 
+$s$ to state 
+$s'$, due to action $a$. 
+The state and action spaces may be finite or infinite, for example the set of real numbers. Some processes with countably infinite state and action spaces can be reduced to ones with finite state and action spaces.[3]
+
+A policy function 
+$\pi$  is a (potentially probabilistic) mapping from state space to action space.
+
+The goal in a Markov decision process is to find a good "policy" for the decision maker: a function 
+$\pi$  that specifies the action 
+$\pi(s)$ that the decision maker will choose when in state 
+$s$. Once a Markov decision process is combined with a policy in this way, this fixes the action for each state and the resulting combination behaves like a Markov chain (since the action chosen in state 
+$s$ is completely determined by 
+$\pi(s)$ and 
+${\displaystyle \Pr(s_{t+1}=s'\mid s_{t}=s,a_{t}=a)}$ reduces to 
+${\displaystyle \Pr(s_{t+1}=s'\mid s_{t}=s)}$, a Markov transition matrix).
+
+The objective is to choose a policy 
+$\pi$  that will maximize some cumulative function of the random rewards, typically the expected discounted sum over a potentially infinite horizon:
+\begin{equation}
+{\mathbb{E}\left[\sum _{t=0}^{\infty }{\gamma ^{t}R_{a_{t}}(s_{t},s_{t+1})}\right]} \; ,
+\end{equation}
+(where we choose 
+$a_t = \pi(s_t)$, i.e. actions given by the policy). And the expectation is taken over 
+${\displaystyle s_{t+1}\sim P_{a_{t}}(s_{t},s_{t+1})}$
+where 
+$\gamma$ is the discount factor satisfying 
+${\displaystyle 0\leq \ \gamma \ \leq \ 1}$, which is usually close to 1 $\gamma = 1/(1+r)$  for some discount rate $r$). A lower discount factor motivates the decision maker to favor taking actions early, rather than postpone them indefinitely.
+
+A policy that maximizes the function above is called an optimal policy and is usually denoted 
+$\pi^*$. A particular MDP may have multiple distinct optimal policies. Because of the Markov property, it can be shown that the optimal policy is a function of the current state, as assumed above.
+
+
+\bigskip
+
+
+Define
+\begin{equation}
+\ Q(s,a) = \sum_{s'} P_a(s,s') (R_a(s,s') + \gamma V(s')).\ 
+\end{equation}
+While this function is also unknown, experience during learning is based on 
+$(s, a)$ pairs (together with the outcome 
+$s'$. Thus, one has an array 
+$Q$ and uses experience to update it directly. This is known as Q-learning.
+
+Solutions for MDPs with finite state and action spaces may be found through a variety of methods such as dynamic programming. The algorithms in this section apply to MDPs with finite state and action spaces and explicitly given transition probabilities and reward functions.
+
+In value iteration (Bellman 1957), which is also called backward induction, the 
+\begin{equation}
+{\displaystyle V_{i+1}(s):=\max _{a}\left\{\sum _{s'}P_{a}(s'|s)\left(R_{a}(s,s')+\gamma V_{i}(s')\right)\right\},}
+\end{equation}
+Value iteration starts at 
+$V_{0}$ as a guess of the value function. It then iterates, repeatedly computing 
+$V_{i+1}$ for all states $s$, until $V$ converges with the left-hand side equal to the right-hand side (which is the ``Bellman equation'' for this problem).
+
+
+The solution above assumes that the state 
+$s$ is known when action is to be taken; otherwise 
+$\pi(s)$ cannot be calculated. When this assumption is not true, the problem is called a partially observable Markov decision process.% or POMDP.
+
+\bigskip
+
+%The environment is typically stated in the form of a Markov decision process (MDP), because many reinforcement learning algorithms for this context use dynamic programming techniques.[3] 
+
+\kyle{variants of intro to RL vs. MDPs}
+
+Reinforcement learning uses MDPs where the probabilities or rewards are unknown.
+
+
+The main difference between the classical dynamic programming methods and reinforcement learning algorithms is that the latter do not assume knowledge of an exact mathematical model of the MDP and they target large MDPs where exact methods become infeasible.
+
+Reinforcement learning can solve Markov decision processes without explicit specification of the transition probabilities; the values of the transition probabilities are needed in value and policy iteration. In reinforcement learning, instead of explicit specification of the transition probabilities, the transition probabilities are accessed through a simulator that is typically restarted many times from a uniformly random initial state. Reinforcement learning can also be combined with function approximation to address problems with a very large number of states.
+
+In the operations research and control literature, reinforcement learning is called approximate dynamic programming, or neuro-dynamic programming. The problems of interest in reinforcement learning have also been studied in the theory of optimal control, which is concerned mostly with the existence and characterization of optimal solutions, and algorithms for their exact computation, and less with learning or approximation, particularly in the absence of a mathematical model of the environment. In economics and game theory, reinforcement learning may be used to explain how equilibrium may arise under bounded rationality.
+
+\kyle{comment on model-based vs. model-free RL. Mention off policy training?}
+
+\subsection{Anomaly detection and Out Of Distribution detection}\label{ML:sec:anomaly}
+
+\kyle{excerpt from wikipedia for reference} 
+%Three broad categories of anomaly detection techniques exist~\cite{10.1145/1541880.1541882}. 
+Unsupervised anomaly detection techniques detect anomalies in an unlabeled test data set under the assumption that the majority of the In Distribution data are normal under some measure, while Out of Distribution data are not.
+In the context of autoencoders
+a popular technique is to use the 
+reconstruction error of Eq. \ref{} to 
+identify an outlier as one with a 
+large reconstruction error \cite{}. One issue with this 
+method is that for higher dimensional 
+latent space and flexible neural network architectures the
+encoder-decoder map become identity for 
+any input data, $f(x)=x$, regardless of whether input $x$ is from the In Distribution training data or from the Out of Distribution data. The choice of 
+autoencoder latent space dimensionality is thus an 
+important hyper-parameter that must be 
+tuned. 
+
+Another set of anomaly detection techniques construct a model representing normal behavior from a given In Distribution training data set, and then test the likelihood of a test instance to be generated by the utilized model. For instance, one can use density 
+estimation methods such as normalizing 
+flows (section \ref{}) to learn the density (likelihood) of the In Distribution training data $p(x)$, and apply it to 
+the test data. The expectation is that 
+Out of Distribution data will have a 
+lower density under the In Distribution
+density model. 
+This method however suffers in high 
+dimensions because 
+likelihood is sensitive to the smallest variance directions \cite{ren2019likelihood}: for example, a zero variance pixel leads to an infinite $p(x)$, and noise must be added to regularize it. But zero variance directions contain little or no information on the global structure of the image.
+As a consequence, normalizing flow can assign higher probabilities to Out of Distribution data than to In Distribution training data \cite{nalisnick2018deep}. One combination of datasets for which this has been observed is Fashion-MNIST and MNIST, where a model trained on the former assigns higher density to the latter. A number of techniques has been proposed to 
+circumvent these limitations, such as 
+likelihood in autoencoder latent space 
+\cite{}, Wasserstein distance training of 
+$p(x)$ \cite{}, likelihood regret \cite{}... etc. \uros{will add more}
+
+Supervised anomaly detection techniques require a data set that has been labeled as In Distribution and Out Of Distribution and involves training a classifier (the key difference to many other statistical classification problems is the inherent unbalanced nature of outlier detection). These methods 
+assume some form for what Out of Distribution data may look like, and their success relies
+on whether the assumed form is a realistic
+representation of actual Out Of Distribution data. When this assumption is 
+valid these methods
+can be more powerful than unsupervised
+methods, but the reverse is also true, 
+and the two approaches are largely 
+complementary. 
+
+\uros{Maybe some anomaly detection HEP examples? LHCOlympics2020?}
+
+
+\subsection{Simulation-based Inference}\label{ML:sec:SBI}
+
+The goal of simulation-based inference (also known as likelihood-free inference) is to extend the statistical procedures described in the Chapter on Statistics (\eg parameter estimation, hypothesis tests, confidence intervals, and Bayesian posterior distributions) to the situation where one does not know the explicit likelihood $p(x|\theta)$, the probability of the data given the parameters $\theta$, but has access to a simulator that defines the likelihood $p(x|\theta)$ implicitly~\cite{Cranmer:2019eaq,Brehmer:2020cvb}. 
+
+In particle physics, the simulators usually use Monte Carlo event generators (see Chapter 42 \kyle{fix ref} ) to sample unobserved latent variables $z$, such as the $z_p$ phase space of the hard scattering (see Sec.~48.4 \kyle{fix}, $z_s$ associated to showering and hadronization, and $z_d$ associated to the interaction of particles with the detector
+(see Chapter 34 \kyle{fix ref}). As such, the full simulation chain can be expressed symbolically as
+\begin{equation}
+    \label{ML:eq:simulation_chain}
+    p(x|\theta) = \int \dif z_d \int \dif z_s \int \dif z_p \, p(x | z_d) p(z_d | z_s) p(z_s | z_p) p(z_p | \theta) \;, 
+\end{equation}
+where $\theta$ are the Lagrangian parameters that dictate the hard scattering. Evaluating the likelihood is intractable as it would require evaluating the integral above for each event.  
+
+While the likelihood is intractable, simulators provide the ability to generate synthetic data $x_i \overset{i.i.d.}{\sim} p(x|\theta)$ for any value of the parameters $\theta$. One can use a suitable proposal distribution $\tilde{p}(\theta)$, sample $\theta_i \overset{i.i.d.}{\sim} \tilde{p}(\theta)$, generate synthetic data $x_i \sim p(x|\theta_i)$, and then assemble a training dataset $\{x_i, \theta_i\}_{i=1,\dots,n}$ that can be used to train various machine learning models. 
+
+There is thus a close analogy between 
+Simulation-based Inference and 
+data driven machine learning tasks discussed so far, replacing 
+$\theta$ with $y$. One difference
+is that in simulation-based inference we can always generate new 
+samples by running additional simulations, 
+while we typically view training data in machine 
+learning as fixed. This property of 
+Simulation-based Inference enables new 
+features such as \textit{Active Learning}, 
+where the additional simulations are 
+chosen such as to minimize the error 
+on the desired statistical inference task.
+Another difference is that we often
+have access to the joint likelihood 
+$p(x,z|\theta)$, where $z$ are unobserved
+latent variables\footnote{For this reason we prefer to use simulation-based inference instead of likelihood-free inference: joint likelihood is often available, it is the 
+marginal integral over latent space that is assumed to be intractable.}. 
+
+
+
+
+Typically in particle physics, one uses histograms or kernel density estimation to model the distribution of observables (low-dimensional summary statistics such as the invariant mass) of simulated data~\cite{Diggle1984MonteCM}. Alternatively, one can use an explicit parametric family (such as a falling exponential, a Gaussian distribution, \etc) to model $\hat{f}(x |\theta) \approx p(x | \theta)$. That model is then used as as a surrogate for the unknown density implicitly defined by the simulator. A related approach is known as Approximate Bayesian Computation (ABC), which approximates the likelihood through an acceptance probability that synthetic data is sufficiently close to the observed data~\cite{rubin1984, beaumont2002approximate}. In practice, these techniques are limited to low-dimensional representations of the data. Thus the potential of recent machine learning approaches to simulation-based inference is to extend this approach to higher-dimensional data, while maintaining the already well-established statistical procedures. 
+
+For instance, one can use normalizing flows (see Sec.~\ref{ML:sec:flows}) and the loss functions for density estimation (see Sec.~\ref{ML:sec:density_estimation}) to learn a surrogate model for the likelihood $\hat{f}(x |\theta) \approx p(x | \theta)$~\cite{Cranmer:2016lzt}. Similarly, one can use conditional density estimation to learn a surrogate model for the posterior $\hat{f}(\theta | x) \approx p(\theta |x)$, which may involve including the prior-to-proposal ratio $\tilde{p}(\theta)/p(\theta)$~\cite{NIPS2016_6084}. In addition to the unsupervised learning techniques, one can also use supervised learning to learn the likelihood ratio $r(x| \theta_0, \theta_1) = p(x|\theta_0)/p(x|\theta_1)$ by leveraging the \textit{likelihood ratio trick} of Eq.~\ref{ML:eq:lrt}~\cite{Cranmer:2015bka,Brehmer:2018hga}. 
+
+In some cases one can also augment the training data to include the joint likelihood ratio
+\begin{equation}
+    \label{ML:eq:joint_ratio}
+    r(x_i, z_i | \theta_0, \theta_1) \coloneqq p(x_i,z_i|\theta_0)/p(x_i,z_i|\theta_1)  \;,
+\end{equation}
+which can be used to reduce the variance for the squared-error loss or the improved cross-entropy estimator of Eq.~\ref{ML:eq:xe_risk_impoved}~\cite{Brehmer:2018hga,Stoye:2018ovl}. While the marginal likelihood $p(x|\theta)$ is intractable due to the high-dimensional integral over the latent space, the joint likelihood is often tractable since no integration is necessary. In addition, one can often augment the training data with the joint score
+\begin{equation}
+t(x_i, z_i | \theta_0) \coloneqq \nabla_\theta \log p(x_i,z_i|\theta) \vert_{\theta_0} \;.
+\end{equation}
+Regressing on the joint score with the squared loss function $\mathcal{L}(t(x,z| \theta_0), f(x)) = (t(x,z| \theta_0)-f(x))^2$ corresponds to risk functional
+\begin{equation}
+\mathcal{R}_\textrm{score}[f] \coloneq \mathbb{E}_{p(x,z|\theta_0)} [ (\nabla_\theta \log p(x_i,z_i|\theta)\vert_{\theta_0} - f(x))^2 ]  \; .
+\end{equation}
+One can show with the calculus of variations that the risk is minimized by
+\begin{equation}
+t(x|\theta_0) \coloneqq \nabla_\theta \log p(x|\theta) \vert_{\theta_0} = \arg \min_f \mathcal{R}_\textrm{score}[f]    \; ,
+\end{equation}
+where $t(x|\theta_0)$ is referred to by statisticians as the score~\cite{Brehmer:2018hga}. The score plays an important role in the classical statistics as it is a sufficient statistic when $p(x|\theta)$ is in the exponential family, and through the Rao-Cram\'er-Fr\'echet bound on the variance of an estimator for $\theta$, and is used to define the Fisher information matrix $I_{ij}(\theta) \coloneqq \mathbb{E}_p(x|\theta)[t_i(x|\theta) t_j(x|\theta)]$. The Fisher information, in turn is an important object in experimental design. In particle physics, the score is closely related to the concept of optimal observables. \uros{People have introduced
+this concept of optimal observables in cosmology too (optimal compression), 
+but one issue is that the score depends on 
+all the variables $\theta_0$, and its
+direction can change a lot for nonlinear 
+models, to the point that it can become 
+suboptimal or even useless.}
+
+\uros{Say more about Active Learning strategies?}
+
+\section{Flavors of ML models}\label{ML:sec:supervised}
+\subsection{Kernel Machines}\label{ML:sec:kernel_machines}
+
+\kyle{the kernel trick}
+
+\kyle{the kernel update for GPs}
+
+\subsection{Decision Trees}\label{ML:sec:decision_trees}
+Excellent reference \url{https://orbi.uliege.be/handle/2268/170309}\cite{louppe2014understanding}
+
+basic idea. 
+trees. ensembles. bagging. boosting, and random forests.  gradient boosting. 
+
+\subsection{Neural Networks}\label{ML:sec:nn}
+\subsubsection{Feed-forward multi-layer perceptron}\label{ML:sec:mlp}
+
+One of the core components in neural networks is the fully-connected, feedforward network or\textit{multi-layer perceptron} (MLP), which is composed of $L$ \textit{layers}: $f = f^{(L)} \circ \dots \circ f^{(1)}$. The $l^\textrm{th}$ layer defines a function that maps a $d_{l-1}$-dimensional input feature vector to an $d_{l}$-dimensional output $f^{(l)}: \mathbb{R}^{d_{l-1}} \to \mathbb{R}^{d_{l}}$.  For $l<L$, the functions $f_l$ are called hidden layers, and $d_{l}$ is referred to as the width of the hidden layers. The layers in an MLP take on the form:
+\begin{equation}
+    \label{ML:eq:hiden_layer}
+    f^{(l)}(u) = \sigma^{(l)}( W^{(l)} u + b^{(l)} ) \;,
+    %f^{(l)}}_{W^{(l)},b^{(l)}}(u) = \sigma^{(l)}( W^{(l)} u + b^{(l)} ) \;,
+\end{equation}
+where $W^{(l)} \in \mathbb{R}^{d_{l} \times d_{l-1}}$ is called the \textit{weight matrix}, the components of the vector $b^{(l)} \in \mathbb{R}^{d_{l}}$ are referred to as the \textit{biases}, $u \in \mathbb{R}^{d_{l-1}}$ is the input from the previous layer, $W^{(l)} u$ denotes a matrix-vector product, and $\sigma^{(l)}$ is a non-linear \textit{activation function} that is usually applied element-wise. The parameters of the network comprise the full collection of weights and biases, $\phi = (W^{(1)}, \dots, W^{(L)}, b^{(1)}, \dots, b^{(L)})$. 
+
+\subsubsection{The rise of deep learning}\label{ML:sec:deep_learning}
+
+There are a number of universal approximation theorems in the theory of neural networks. One of the first was that even with one hidden layer $(L=2)$, an MLP can approximate any continuous function if the non-linear activation function $\sigma$ not a polynomial and the width $d_1$ is large enough~\cite{cybenko1989approximation}. However, it is often more efficient (in terms of the number of parameters) to increase the \textit{depth} of the network $L$~\cite{NIPS2011_8e6b42f1}. 
+
+Training a deep network (\ie $L>2$) that generalizes well can be more difficult, requiring large training datasets, many gradient updates, and suitable regularization. The introduction of large labeled training sets, advances in computing (\eg graphic processing units or GPUs), and regularization techniques like \textit{dropout}~\cite{dropout} all played an important role in the rise of \textit{deep learning}~\cite{lecun_2018, schmidhuber2015deep}. Though the name deep learning was originally a reference to the depth $L$ of such networks, modern deep learning is characterized more by the composition of various types of modules that are trained through gradient-based optimization, which we discuss in Sec.~\ref{ML:sec:grad_opt}. Below we introduce some other common network architectures. 
+%eponymous, titular, namesake
+
+\subsubsection{Convolutional Neural Networks}\label{ML:sec:cnn}
+Convolutional Neural Networks (CNNs) have been at the core of modern deep learning. 
+
+\kazu{mention image analysis: classification, object detection, semantic/instance segmentation}
+
+\kazu{mention the basic ingredients: convolution layer (kernel), strides, pooling}
+
+
+\kyle{Kazu, maybe you can work on this section?}
+\kyle{A schematic figure for an CNN?}
+
+stride, sum and average pooling
+
+\kyle{mention U-net?}
+
+\subsubsection{Residual networks and skip connections}\label{ML:sec:resnet}
+
+\kazu{Mention ResNet, U-Net, DenseNet all utilizing connections for designing information flow}
+
+\subsubsection{Recurrent Neural Networks}\label{ML:sec:rnn}
+
+\kyle{comment on  (LSTM and GRU) and TreeRNN}
+
+\subsubsection{Graph networks and geometric deep learning}\label{ML:sec:gnn} 
+could put DeepSets MPNN, Attention, Transformers here
+
+\subsection{Deep Generative Models}\label{ML:sec:deep_generative}
+
+
+Latent variable generative models such as Normalizing Flows (NFs) \cite{rezende2015variational,dinh2014nice,dinh2016density,kingma2018glow}, Variational AutoEncoders (VAEs) \cite{kingma2013auto,rezende2014stochastic} and Generative Adversarial Networks (GANs) \cite{goodfellow2014generative, radford2015unsupervised} aim to model the distribution $p(x)$ of high-dimensional input data $x$ by introducing a mapping from a latent variable $z$ to $x$, where $z$ is assumed to follow a given prior distribution $\pi(z)$. These models usually parameterize the mapping using neural networks, and the training of these models typically consists of minimizing a dissimilarity measure between the model distribution and the target distribution. For normalizing flows one maximizes the marginal likelihood $p(x)$ directly, while 
+for VAEs one maximizes its expectation 
+lower bound objective (ELBO). 
+For GANs, the adversarial training leads to minimizations of the Jenson-Shannon (JS) divergence \cite{goodfellow2014generative} or Wasserstein distance \cite{}. 
+
+The parametrization of the mapping (the architecture of the neural network) should match the structure of the data and be expressive enough. Different architectures have been proposed \cite{kingma2018glow, van2017neural,karras2017progressive, karras2019style}, 
+and to achieve the best performance on a new dataset one needs extensive hyperparameter explorations \cite{lucic2018gans}.
+The dissimilarity measure (the loss function) should be appropriately chosen for the tasks. For example, in high dimensions the dissimilarity defined in 
+data space has been found to be better correlated with the 
+sample quality than the corresponding 
+dissimilarity in latent space, which is believed to be one of the reasons that GANs are able to generate higher quality samples than VAEs and NFs. However, JS divergence is hard to directly work with, and the adversarial training could bring many problems such as vanishing gradient, mode collapse and non-convergence \cite{arjovsky2017towards, wiatrak2019stabilizing}.
+
+
+\subsubsection{GANS}\label{ML:sec:gan}
+
+\uros{to do}
+
+\kyle{mention Wasserstein}
+
+\subsubsection{VAEs}\label{ML:sec:vae}
+
+\uros{to do}
+
+
+\subsubsection{Normalizing Flows}\label{ML:sec:flows}
+
+Note: 41.2 Inverse transform method \url{https://pdg.lbl.gov/2020/reviews/rpp2020-rev-monte-carlo-techniques.pdf}
+
+
+\section{Gradient-based optimization}\label{ML:sec:grad_opt}
+
+\subsection{Automatic Differentiation and Back propagation}\label{ML:sec:autodiff}
+
+\subsection{Stochastic Gradient Descent}\label{ML:sec:sgd}
+
+\kyle{add a traditional test-train loss curve for SGD that can be used for early stopping and notion of variance on the loss. }
+
+\subsection{Optimization Algorithms}\label{ML:sec:opt}
+
+%\subsection{Phenomena of over-parameterized models}\label{ML:sec:overparameterized}
+%Double descent, implicit regularization, ...
+
+%\kyle{suggest we drop}
+
+
+\section{Uncertainty}\label{ML:sec:uncert}
+%\subsection{aleatoric \& epistemic uncertainty}\label{ML:sec:deep_generative}
+
+aleatoric \& epistemic uncertainty
+
+\kyle{Mention bayesian NNs}
+\kazu{maybe also MC dropout and Evidential Deep Learning?}
+
+\subsection{Domain Shift}\label{ML:sec:domain_shift}
+
+adversarial approaches like learning to pivot
+
+\section{Applications}\label{ML:sec:applications}
+
+\kyle{Uros and Kyle conversation... not clear if we keep this section.}
+
+\subsection{Energy frontier}\label{ML:sec:energy_frontier}
+
+\subsection{Neutrino frontier}\label{ML:sec:intensity_frontier}
+Neutrino or intensity? 
+
+\subsection{Cosmic frontier}\label{ML:sec:cosmic_frontier}
+
+\uros{to do}        
+
+\subsection{Accelerator frontier}\label{ML:sec:accelerator_frontier}
+
+%\newpage
+% Sectioning
+% ----------
+% This review is a regular review, please use \section for your top-level sectioning.
+% For example:
+
+
+% Text of your review
+% -------------------
+% Please see the instructions included in instructions.pdf with your source files for how to
+% include figures, tables, and references. By default we also include file examples.tex,
+% which can be used to render these instructions within your review to show specific examples
+% of including figures, tables, how to align equations, and more.
+%
+% These instructions also include tables showing all the standard PDG symbols and what they produce.
+%
+% To remove the instructions from your review, comment out the following line when you
+% start writing your review.
+%\input{examples.tex}
+
+
+% References
+% ----------
+% The following line includes your bibliography using BibTeX. In case you do not
+% yet use BibTex, you can put your bibliography below (using a series of \bibitem entries).
+% Please  note that using BibTeX will become mandatory in the future.
+%\IfFileExists{ml.bib, review.bib, biblio.bib}{\putbib[ml,review,biblio]}{}
+\IfFileExists{ml.bib}{\putbib[ml,review,biblio,sbi]}{}
+
+
+
